@@ -331,7 +331,13 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
     "currency": "RUB",
     "status": "created",
     "method": "CARD",
-    "paymentUrl": "https://payment.example.com/pay/uuid-here",
+    "bank": "ALFA",
+    "receiver": "2200154965960000",
+    "holder": "Иванов Иван Иванович",
+    "cardNumber": "2200154965960000",
+    "phoneNumber": "+79001234567",
+    "nspkURL": "https://payment.example.com/pay/uuid-here",
+    "country": "RU",
     "createdAt": "2024-01-01T12:00:00Z"
   }
 }
@@ -498,6 +504,115 @@ X-Environment: sandbox
 - MerchantsModule
 - TransactionsService
 - CommissionsService
+
+## Callback уведомления
+
+Система автоматически отправляет HTTP POST уведомления на указанный `callbackURL` при изменении статуса транзакции.
+
+### Структура callback для PayIn
+
+```json
+{
+  "externalID": "test_merchant_id_2",
+  "status": "completed",
+  "amount": "1000",
+  "currency": 1,
+  "method": "CARD",
+  "timestamp": "2024-01-15T12:00:00.000Z",
+  "trackerId": "optional_tracker_id"
+}
+```
+
+### Структура callback для PayOut
+
+```json
+{
+  "externalID": "test_payout_123",
+  "status": "completed",
+  "amount": "5000",
+  "currency": 1,
+  "method": "card",
+  "receiver": "4000000000000000",
+  "timestamp": "2024-01-15T12:00:00.000Z",
+  "trackerId": "optional_tracker_id"
+}
+```
+
+### Параметры callback
+
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| externalID | string | Ваш уникальный ID транзакции |
+| status | string | Новый статус транзакции |
+| amount | string | Сумма транзакции |
+| currency | number | ID валюты |
+| method | string | Метод платежа/выплаты |
+| receiver | string | Реквизиты получателя (только для PayOut) |
+| timestamp | string | Время изменения статуса в формате ISO 8601 |
+| trackerId | string | Опциональный ID для отслеживания (если передан) |
+
+### Заголовки callback запроса
+
+```http
+Content-Type: application/json
+User-Agent: Way2Pay-Callback/1.0
+```
+
+### Обработка callback
+
+1. **Ваш сервер должен отвечать HTTP 200** для подтверждения получения
+2. **Время ожидания ответа**: 30 секунд
+3. **Повторные попытки**: В случае ошибки система выполнит до 3 повторных попыток
+4. **Безопасность**: Рекомендуется проверять IP-адрес отправителя
+
+### Пример обработки callback (PHP)
+
+```php
+<?php
+// Получаем данные callback
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
+
+if ($data) {
+    $externalID = $data['externalID'];
+    $status = $data['status'];
+    $amount = $data['amount'];
+    
+    // Обновляем статус транзакции в вашей системе
+    updateTransactionStatus($externalID, $status);
+    
+    // Возвращаем успешный ответ
+    http_response_code(200);
+    echo 'OK';
+} else {
+    http_response_code(400);
+    echo 'Invalid data';
+}
+?>
+```
+
+### Пример обработки callback (Node.js)
+
+```javascript
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+app.post('/callback', (req, res) => {
+    const { externalID, status, amount, currency, method, timestamp } = req.body;
+    
+    // Обновляем статус транзакции в вашей системе
+    updateTransactionStatus(externalID, status);
+    
+    // Возвращаем успешный ответ
+    res.status(200).send('OK');
+});
+
+app.listen(3000, () => {
+    console.log('Callback server running on port 3000');
+});
+```
 
 ## Поддержка
 
