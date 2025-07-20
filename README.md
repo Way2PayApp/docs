@@ -2,140 +2,162 @@
 
 ## Введение
 
-
-Добро пожаловать в документацию по API **Way2Pay**. Наш API предоставляет вам мощные возможности для программного взаимодействия с нашими сервисами, обеспечивая простую и надёжную интеграцию с вашими приложениями.
+Добро пожаловать в документацию по API **Way2Pay**. Наш API  предназначен для безопасного взаимодействия между внешними системами и сервисами платформы. Он предоставляет доступ к операциям по управлению транзакциями, проверке баланса, созданию платёжных форм и выполнению выплат.
 
 ## Аутентификация и Подпись
 
-Для обеспечения безопасности нашего API все запросы должны быть подписаны с использованием подписи (Signature), сгенерированной с помощью секретного ключа (SecretKey), который мы предоставляем нашим клиентам. Подпись используется для проверки целостности и подлинности запросов.
+Для обеспечения безопасности нашего API все запросы должны быть подписаны с использованием подписи (Signature), сгенерированной с помощью приватного ключа (PrivateKey), который мы предоставляем нашим клиента в Личном Кабинете. Подпись используется для проверки целостности и подлинности запросов.
 
 ### Генерация Подписи
 
-Подпись генерируется с использованием алгоритма HMAC-SHA256. Ниже приведен пример функции генерирования подписи (Signature):
+Подпись генерируется с использованием алгоритма HMAC-SHA512. Ниже приведен пример функции генерирования подписи (Signature):
 
-#### JavaScript
+#### JavaScript/Node.js
 ```javascript
 const crypto = require('crypto');
 
-function generateSignature(secretKey, message) {
-  return crypto
-    .createHmac('sha256', secretKey)
-    .update(message)
-    .digest('hex');
+function generateSignature(secret, message) {
+    return crypto.createHmac('sha512', secret)
+                 .update(message)
+                 .digest('hex');
+}
+```
+
+#### PHP
+```php
+function generateSignature($secret, $message) {
+    return hash_hmac('sha512', $message, $secret);
 }
 ```
 
 ### Формирование Сообщения
 
-Сообщение (message), используемое для генерации подписи, формируется следующим образом:
+Сообщение (message), используемое для генерации подписи, формируется по-разному в зависимости от метода HTTP запроса:
 
-1. Преобразуйте тело запроса в JSON-строку
-2. Добавьте к этой строке значение nonce (временная метка)
-3. Полученная строка используется для генерации подписи
+- **GET Запрос**: Сообщение составляется из URL и закодированных параметров запроса.
+- **POST Запрос**: Сообщение включает URL и JSON тело запроса.
 
-#### Пример кода на JavaScript:
-```javascript
-const data = { amount: "1000", currency: "RUB" }; // Тело запроса
-const nonce = Math.floor(Date.now() / 1000) + 300; // Текущее время + 5 минут
-const dataString = JSON.stringify(data);
-const message = `${dataString}${nonce}`;
-const signature = generateSignature(secretKey, message);
-```
+#### <span style="color:red">
+*JSON ключи в теле (body) и query параметры запроса должны идти в алфавитном порядке!* </span>
 
+#### Пример формирования сообщения для GET запроса:
+- **URL**: `/api/v1/balance`
+- **Expires**: `1721585422` - время жизни запроса в формате UNIX по UTC
+- **Сообщение для подписи**: `/api/v1/balance1721585422`
 
-### Примеры
+#### Пример формирования сообщения для POST запроса:
+- **URL**: `https://way2pay.top/api/v1/pay-in`
+- **Expires**: `1721585422`
+- **Тело запроса**: `{"amount":"1000","bankId":1,"callbackURL":"https://test.com/callback","currencyId":1,"externalID":"test123","method":"CARD"}`
+- **Сообщение для подписи**: `/api/v1/pay-in{"amount":"1000","bankId":1,"callbackURL":"https://test.com/callback","currencyId":1,"externalID":"test123","method":"CARD"}1721585422`
 
-Для POST запроса на `https://way2pay.app/api/v1/pay-in` с телом:
-```json
-{
-  "externalID": "test123",
-  "currency": "RUB",
-  "callbackURL": "https://test.com/callback",
-  "description": "Тестовый платеж",
-  "amount": "1000"
-}
-```
-
-1. Nonce: 1721585422 - время жизни запроса в формате UNIX по UTC, рекомендуем добавлять к текущему времени 5 минут
-2. Сообщение для подписи: {"externalID":"test123","currency":"RUB","callbackURL":"https://test.com/callback","description":"Тестовый платеж","amount":"1000"}1721585422
-
-### Заголовки Запросов
+### Обязательные заголовки
 
 Каждый запрос к API должен включать следующие заголовки:
 
-1. Content-Type: application/json
-2. Public-Key: Ваш публичный ключ, предоставленный Way2Pay.
-3. Nonce: Временная метка в формате UNIX, которая должна быть больше, чем в предыдущем запросе.
-4. Signature: Подпись HMAC-SHA256, сгенерированная с использованием вашего секретного ключа и сообщения.
+- **Content-Type**: `application/json`
+- **Public-Key**: Ваш публичный ключ, предоставленный *Way2Pay*
+- **Expires**: Время истечения жизни запроса (UNIX timestamp)
+- **Signature**: Подпись HMAC-SHA512, сгенерированная с использованием вашего приватного ключа
 
-### Пример заголовков
-```javascript
+#### Пример заголовков
+
+```http
 Content-Type: application/json
-Nonce: 1721585422
-Public-Key: your_public_key
-Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b
+Expires: 1717025133
+Public-Key: your_public_key_here
+Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490cfc8ff180e7575c5dbbc643ab3842ca05ae8bbb9f08e57c58cab748f8677
 ```
 
-### Выполнение Запроса
+## API Endpoints
 
-Ниже приведен пример того, как выполнить POST запрос к API Way2Pay:
+### Основные эндпоинты
 
-#### POST Запрос
-```javascript
-POST /api/v1/pay-in HTTP/1.1
-Host: api.way2pay.com
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/v1/balance` | Получение баланса |
+| GET | `/api/v1/banks` | Получение списка банков |
+| GET | `/api/v1/currencies` | Получение списка валют |
+| GET | `/api/v1/commissions` | Получение комиссий |
+| POST | `/api/v1/pay-in` | Создание заявки на прием платежа |
+| GET | `/api/v1/pay-in/list` | Получение списка заявок PayIn |
+| GET | `/api/v1/pay-in/{id}` | Получение заявки PayIn по ID |
+| PUT | `/api/v1/pay-in/{id}/status/{status}` | Обновление статуса заявки PayIn |
+| POST | `/api/v1/pay-out` | Создание выплаты |
+| GET | `/api/v1/pay-out/list` | Получение списка заявок PayOut |
+| GET | `/api/v1/pay-out/{id}` | Получение заявки PayOut по ID |
+| PUT | `/api/v1/pay-out/{id}/status/{status}` | Обновление статуса заявки PayOut |
+
+## Выполнение Запросов
+
+### GET Запрос
+
+Пример GET запроса для получения баланса:
+
+```http
+GET /api/v1/balance HTTP/1.1
+Host: your-domain.com
 Content-Type: application/json
-Nonce: 1721585422
-Public-Key: your_public_key
-Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b
+Expires: 1717025133
+Public-Key: your_public_key_here
+Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490cfc8ff180e7575c5dbbc643ab3842ca05ae8bbb9f08e57c58cab748f8677
+```
+
+### POST Запрос
+
+Пример POST запроса для создания PayIn:
+
+```http
+POST /api/v1/pay-in HTTP/1.1
+Host: way2pay.top
+Content-Type: application/json
+Expires: 1717025134
+Public-Key: your_public_key_here
+Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490cfc8ff180e7575c5dbbc643ab3842ca05ae8bbb9f08e57c58cab748f8678
 
 {
-  "externalID": "test123",
-  "currency": "RUB",
-  "callbackURL": "https://test.com/callback",
-  "description": "Тестовый платеж",
-  "amount": "1000"
+  "bankId": 1,
+  "externalID": "test_merchant_id_2",
+  "currencyId": 1,
+  "callbackURL": "https://example.com/callbacks/payment",
+  "description": "Test payment",
+  "amount": "1000",
+  "method": "CARD"
 }
 ```
 
-#### Ответ
+## Ответы API
 
-Все ответы от API Way2Pay будут в формате JSON. Ответ включает в себя:
+Все ответы от API Payment SAAS возвращаются в формате JSON. Ответ включает в себя:
 
-1. success - Статус запроса (true/false).
-2. data - Данные, возвращенные API (только в случае успешного ответа).
-3. error - Данные об ошибке (только в случае ошибочного ответа).
+- **success** - Статус запроса (true/false)
+- **data** - Данные, возвращенные API (только в случае успешного ответа)
+- **error** - Данные об ошибке (только в случае ошибочного ответа)
 
-#### Пример успешного ответа
+### Пример успешного ответа
+
 ```json
 {
   "success": true,
   "data": {
-    "id": "6f3c9a2d-7b5e-4f8a-9d3b-1c2e4f5a6b7c",
-    "externalID": "test123",
-    "currency": "RUB",
-    "amount": "1000",
-    "status": "PENDING",
-    "method": "CARD",
-    "bank": "SBER",
-    "cardNumber": "2200123456789012",
-    "holder": "Иванов Иван",
-    "createdAt": "2025-07-06T16:30:22.123Z",
-    "updatedAt": "2025-07-06T16:30:22.123Z"
+    "balance": {
+      "payment": {
+        "currency": "RUB",
+        "available": "10260.76",
+        "frozen": "0"
+      },
+      "payout": {
+        "currency": "RUB",
+        "available": "9750.50",
+        "frozen": "500.00"
+      }
+    }
   }
 }
 ```
 
-#### Обработка Ошибок
+### Пример ответа с ошибкой
 
-В случае ошибки ответ будет включать:
-
-- **success**: false
-- **error**: Объект с информацией об ошибке
-    **message**: Описание ошибки
-    **code**: Код ошибки
-
-#### Пример ответа с ошибкой
 ```json
 {
   "success": false,
@@ -146,37 +168,345 @@ Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b
 }
 ```
 
-## Коды ошибок
+## Детальное описание API эндпоинтов
 
-| Код ошибки | Сообщение                               | HTTP статус код |
-|------------|----------------------------------------|------------------|
-| 10000      | unauthorized                           | 401              |
-| 20000      | wrong input                            | 400              |
-| 20001      | can't bind body to request model       | 422              |
-| 20002      | can't bind query parameters            | 422              |
-| 20003      | failed to parse key                    | 422              |
-| 20004      | signature header value missing or malformed | 400           |
-| 20005      | public-Key header value missing or malformed | 400         |
-| 20006      | nonce header value missing or outdated | 400              |
-| 30000      | forbidden                              | 403              |
-| 30001      | user doesn't exists	                  | 403              |
-| 30003      | user doesn't exists                    | 403              |
-| 30004      | zero balance                           | 403              |
-| 30005      | not enough balance                     | 402              |
-| 30006      | amount less than min                   | 400              |
-| 30007      | amount greater than max                | 400              |
-| 40000      | internal error                         | 500              |
-| 60000      | ticker doesnt exists                   | 400              |
-| 60001      | ticker type doesnt exists              | 400              |
-| 60002      | invalid status                         | 400              |
-| 60003      | empty Public-Key                       | 401              |
-| 60004      | empty Nonce                            | 401              |
-| 60005      | empty Signature                        | 401              |
-| 60006      | invalid Signature                      | 401              |
-| 60007      | request timeout                        | 408              |
-| 60008      | invalid Public-Key                     | 400              |
-| 60009      | empty externalID                       | 400              |
-| 60010      | externalID already exists              | 409              |
-| 60011      | payment doesn't exists                 | 404              |
-| 60012      | payment is finalized                   | 409              |
+### 1. Получение баланса
 
+**GET** `/api/v1/balance`
+
+Получение информации о балансе клиента.
+
+#### Параметры запроса
+Нет параметров
+
+#### Пример ответа
+```json
+{
+  "success": true,
+  "data": {
+    "balance": {
+      "payment": {
+        "currency": "RUB",
+        "available": "10260.76",
+        "frozen": "0"
+      },
+      "payout": {
+        "currency": "RUB",
+        "available": "9750.50",
+        "frozen": "500.00"
+      }
+    }
+  }
+}
+```
+
+### 2. Получение списка банков
+
+**GET** `/api/v1/banks`
+
+Получение списка доступных банков для проведения операций.
+
+#### Заголовки
+- `X-Environment`: sandbox | test | production (опционально, по умолчанию production)
+
+#### Пример ответа
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "name": "SBER",
+      "displayName": "Сбербанк",
+      "isActive": true,
+      "supportedCurrencies": ["RUB"]
+    },
+    {
+      "id": 2,
+      "name": "TINKOFF",
+      "displayName": "Тинькофф Банк",
+      "isActive": true,
+      "supportedCurrencies": ["RUB"]
+    }
+  ]
+}
+```
+
+### 3. Получение списка валют
+
+**GET** `/api/v1/currencies`
+
+Получение списка поддерживаемых валют.
+
+#### Пример ответа
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "code": "RUB",
+      "name": "Российский рубль",
+      "symbol": "₽",
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "code": "USD",
+      "name": "Доллар США",
+      "symbol": "$",
+      "isActive": true
+    }
+  ]
+}
+```
+
+### 4. Получение комиссий
+
+**GET** `/api/v1/commissions`
+
+Получение информации о комиссиях (доступно только для ADMIN и SUPER_ADMIN).
+
+#### Заголовки
+- `X-Environment`: sandbox | test | production (опционально)
+
+#### Пример ответа
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "type": "PAY_IN",
+      "method": "CARD",
+      "currency": "RUB",
+      "percentage": "2.5",
+      "fixedAmount": "0",
+      "minAmount": "10",
+      "maxAmount": "0"
+    }
+  ]
+}
+```
+
+### 5. Создание заявки на прием платежа (PayIn)
+
+**POST** `/api/v1/pay-in`
+
+Создание новой заявки на прием платежа.
+
+#### Параметры запроса
+
+| Параметр | Тип | Обязательный | Описание | Пример |
+|----------|-----|--------------|----------|----------|
+| bankId | number | Да | ID банка | 1 |
+| externalID | string | Да | Уникальный ID в системе мерчанта (1-64 символа) | "test_merchant_id_2" |
+| currencyId | number | Да | ID валюты | 1 |
+| callbackURL | string | Нет | URL для получения callback | "https://example.com/callback" |
+| description | string | Нет | Описание платежа | "Test payment" |
+| amount | string | Да | Сумма платежа | "1000" |
+| method | string | Да | Метод платежа: CARD, SBP, ACCOUNT, CROSSBORDER | "CARD" |
+
+#### Пример запроса
+```json
+{
+  "bankId": 1,
+  "externalID": "test_merchant_id_2",
+  "currencyId": 1,
+  "callbackURL": "https://example.com/callbacks/payment",
+  "description": "Test payment",
+  "amount": "1000",
+  "method": "CARD"
+}
+```
+
+#### Пример ответа
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid-here",
+    "externalID": "test_merchant_id_2",
+    "amount": "1000",
+    "currency": "RUB",
+    "status": "created",
+    "method": "CARD",
+    "paymentUrl": "https://payment.example.com/pay/uuid-here",
+    "createdAt": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+### 6. Создание выплаты (PayOut)
+
+**POST** `/api/v1/pay-out`
+
+Создание новой заявки на выплату.
+
+#### Параметры запроса
+
+| Параметр | Тип | Обязательный | Описание | Пример |
+|----------|-----|--------------|----------|----------|
+| externalID | string | Да | Уникальный ID в системе мерчанта | "test_payout_123" |
+| bank | string | Да | Код банка | "SBER" |
+| method | string | Да | Метод выплаты: card, sbp, account | "card" |
+| currencyId | string | Да | Код валюты | "RUB" |
+| callbackURL | string | Да | URL для получения callback | "https://example.com/callback" |
+| amount | string | Да | Сумма выплаты | "5000" |
+| receiver | string | Да | Реквизиты получателя | "4000000000000000" |
+| holder | string | Да | Имя получателя | "Иванов Иван Иванович" |
+
+#### Пример запроса
+```json
+{
+  "externalID": "test_payout_123",
+  "bank": "SBER",
+  "method": "card",
+  "currencyId": "RUB",
+  "callbackURL": "https://example.com/callbacks/payout",
+  "amount": "5000",
+  "receiver": "4000000000000000",
+  "holder": "Иванов Иван Иванович"
+}
+```
+
+#### Пример ответа
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid-here",
+    "externalID": "test_payout_123",
+    "amount": "5000",
+    "currency": "RUB",
+    "status": "created",
+    "method": "card",
+    "receiver": "4000000000000000",
+    "holder": "Иванов Иван Иванович",
+    "createdAt": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+### 7. Получение заявки по ID
+
+**GET** `/api/v1/pay-in/{id}` или `/api/v1/pay-out/{id}`
+
+Получение информации о конкретной заявке.
+
+#### Параметры URL
+- `id` - ID заявки
+
+#### Пример ответа
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid-here",
+    "externalID": "test_merchant_id_2",
+    "amount": "1000",
+    "currency": "RUB",
+    "status": "completed",
+    "method": "CARD",
+    "createdAt": "2024-01-01T12:00:00Z",
+    "updatedAt": "2024-01-01T12:05:00Z"
+  }
+}
+```
+
+## Статусы транзакций
+
+### PayIn статусы
+- `created` - Заявка создана
+- `pending` - Ожидает оплаты
+- `completed` - Успешно завершена
+- `failed` - Ошибка при обработке
+- `canceled` - Отменена
+
+### PayOut статусы
+- `created` - Заявка создана
+- `pending` - В обработке
+- `completed` - Успешно завершена
+- `failed` - Ошибка при обработке
+- `canceled` - Отменена
+
+## Обработка Ошибок
+
+В случае ошибки ответ будет включать:
+
+- **message**: Описание ошибки
+- **code**: Код ошибки
+
+### Коды ошибок
+
+| Код ошибки | Сообщение | HTTP статус |
+|------------|-----------|-------------|
+| 10000 | unauthorized | 401 |
+| 20000 | wrong input | 400 |
+| 20001 | can't bind body to request model | 422 |
+| 20002 | can't bind query parameters | 422 |
+| 20003 | failed to parse key | 422 |
+| 20004 | signature header value missing or malformed | 400 |
+| 20005 | public-Key header value missing or malformed | 400 |
+| 20006 | timestamp header value missing or outdated | 400 |
+| 20012 | invalid query params | 400 |
+| 20015 | conflict | 409 |
+| 20016 | empty external ID | 400 |
+| 30000 | forbidden | 403 |
+| 30001 | no access to requested session | 403 |
+| 30002 | requested sessions has expired | 403 |
+| 30003 | user doesn't exists | 403 |
+| 30004 | zero balance | 403 |
+| 30005 | not enough balance | 402 |
+| 30006 | amount less than min | 400 |
+| 30007 | amount greater than max | 400 |
+| 40000 | internal error | 500 |
+| 60003 | empty Public-Key | 401 |
+| 60004 | empty Expires | 401 |
+| 60005 | empty Signature | 401 |
+| 60006 | invalid Signature | 401 |
+| 60007 | request timeout | 408 |
+| 60008 | invalid Public-Key | 400 |
+| 60009 | empty external ID | 400 |
+| 60010 | external ID already exists | 409 |
+| 60011 | payment doesn't exists | 404 |
+| 60012 | payment is finalized | 409 |
+
+## Тестовые окружения
+
+Система поддерживает работу с различными окружениями через заголовок `X-Environment`:
+
+- **sandbox** - песочница для тестирования
+- **test** - тестовое окружение
+- **production** - продакшн окружение (по умолчанию)
+
+### Использование
+
+Добавьте заголовок в ваши запросы:
+```http
+X-Environment: sandbox
+```
+
+### Поддерживаемые модули
+
+- CommissionsModule
+- PayInModule
+- PayOutModule
+- BanksModule
+- BalanceModule
+- ProcessingModule
+- MerchantsModule
+- TransactionsService
+- CommissionsService
+
+## Поддержка
+
+Для получения технической поддержки и дополнительной информации:
+
+- **Техническая поддержка**: https://way2pay.top/#contact
+- **Статус системы**: https://status.way2pay.top
+- **Документация обновлена**: 2024-01-15
+
+---
+
+*Данная документация регулярно обновляется. Следите за изменениями и новыми возможностями API.*
