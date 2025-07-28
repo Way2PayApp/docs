@@ -46,7 +46,7 @@ function generateSignature($secret, $message) {
 - **Сообщение для подписи**: `/api/v1/balance1721585422`
 
 #### Пример формирования сообщения для POST запроса:
-- **URL**: `https://way2pay.top/api/v1/pay-in`
+- **URL**: `https://api.way2pay.top/api/v1/pay-in`
 - **Expires**: `1721585422`
 - **Тело запроса**: `{"amount":"1000","bankId":1,"callbackURL":"https://test.com/callback","currencyId":1,"externalID":"test123","method":"CARD"}`
 - **Сообщение для подписи**: `/api/v1/pay-in{"amount":"1000","bankId":1,"callbackURL":"https://test.com/callback","currencyId":1,"externalID":"test123","method":"CARD"}1721585422`
