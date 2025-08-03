@@ -463,7 +463,6 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 }
 ```
 
-
 #### Получение заявки PayOut по ID
 
 **GET** `/api/v1/pay-out/{id}`
@@ -485,6 +484,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
     "commission": "973.2"
   }
 }
+```
 
 #### Параметры URL
 - `id` - ID заявки
