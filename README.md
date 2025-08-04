@@ -207,7 +207,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 Получение списка доступных банков для проведения операций.
 
 #### Заголовки
-- `X-Environment`: sandbox | test | production (опционально, по умолчанию production)
+- `X-Environment`: SANDBOX | TEST | PRODUCTION (опционально, по умолчанию PRODUCTION)
 
 #### Пример ответа
 ```json
@@ -274,7 +274,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 Получение информации о комиссиях (доступно только для ADMIN и SUPER_ADMIN).
 
 #### Заголовки
-- `X-Environment`: sandbox | test | production (опционально)
+- `X-Environment`: SANDBOX | TEST | PRODUCTION (опционально)
 
 #### Пример ответа
 ```json
@@ -613,15 +613,15 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 
 Система поддерживает работу с различными окружениями через заголовок `X-Environment`:
 
-- **sandbox** - песочница для тестирования
-- **test** - тестовое окружение
-- **production** - продакшн окружение (по умолчанию)
+- **SANDBOX** - песочница для тестирования
+- **TEST** - тестовое окружение
+- **PRODUCTION** - продакшн окружение (по умолчанию)
 
 ### Использование
 
 Добавьте заголовок в ваши запросы:
 ```http
-X-Environment: sandbox
+X-Environment: SANDBOX
 ```
 
 ### Поддерживаемые модули
