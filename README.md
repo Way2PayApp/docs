@@ -96,7 +96,7 @@ Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 
 ```http
 GET /api/v1/balance HTTP/1.1
-Host: your-domain.com
+Host: api.way2pay.top
 Content-Type: application/json
 Expires: 1717025133
 Public-Key: your_public_key_here
@@ -109,7 +109,7 @@ Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 
 ```http
 POST /api/v1/pay-in HTTP/1.1
-Host: way2pay.top
+Host: api.way2pay.top
 Content-Type: application/json
 Expires: 1717025134
 Public-Key: your_public_key_here
