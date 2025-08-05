@@ -15,11 +15,38 @@
 #### JavaScript/Node.js
 ```javascript
 const crypto = require('crypto');
-
-function generateSignature(secret, message) {
-    return crypto.createHmac('sha512', secret)
-                 .update(message)
-                 .digest('hex');
+/**
+ * Генерация HMAC-SHA512 подписи для API запроса
+ * @param {string} method - HTTP метод (GET, POST, etc.)
+ * @param {string} url - URL эндпоинта
+ * @param {object|null} body - Тело запроса (для POST/PUT)
+ * @param {number} expires - Временная метка истечения
+ * @param {string} privateKey - Приватный ключ
+ * @returns {string} HMAC-SHA512 подпись
+ */
+function generateSignature(method, url, body, expires, privateKey) {
+  let stringToSign;
+  const urlPath = extractUrlPath(url);
+  
+  if (method.toUpperCase() === 'GET') {
+    // Для GET запросов: URL + query параметры (отсортированные) + expires
+    const sortedQuery = getSortedQueryParams(url);
+    stringToSign = `${urlPath}${sortedQuery}${expires}`;
+  } else {
+    // Для POST/PUT/PATCH запросов: URL + JSON body (с отсортированными ключами) + expires
+    let bodyString = '';
+    if (body) {
+      const sortedBody = sortObjectKeys(body);
+      bodyString = JSON.stringify(sortedBody);
+    }
+    stringToSign = `${urlPath}${bodyString}${expires}`;
+  }
+  
+  const signature = crypto.createHmac('sha512', privateKey)
+    .update(stringToSign)
+    .digest('hex');
+    
+  return signature;
 }
 ```
 
