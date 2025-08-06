@@ -15,46 +15,40 @@
 #### JavaScript/Node.js
 ```javascript
 const crypto = require('crypto');
-/**
- * Генерация HMAC-SHA512 подписи для API запроса
- * @param {string} method - HTTP метод (GET, POST, etc.)
- * @param {string} url - URL эндпоинта
- * @param {object|null} body - Тело запроса (для POST/PUT)
- * @param {number} expires - Временная метка истечения
- * @param {string} privateKey - Приватный ключ
- * @returns {string} HMAC-SHA512 подпись
- */
-function generateSignature(method, url, body, expires, privateKey) {
-  let stringToSign;
-  const urlPath = extractUrlPath(url);
+
+function generateSignature(method, path, body, nonce, secretKey) {
+  const bodyStr = body ? JSON.stringify(body) : '';
+  const message = path + bodyStr + nonce;
   
-  if (method.toUpperCase() === 'GET') {
-    // Для GET запросов: URL + query параметры (отсортированные) + expires
-    const sortedQuery = getSortedQueryParams(url);
-    stringToSign = `${urlPath}${sortedQuery}${expires}`;
-  } else {
-    // Для POST/PUT/PATCH запросов: URL + JSON body (с отсортированными ключами) + expires
-    let bodyString = '';
-    if (body) {
-      const sortedBody = sortObjectKeys(body);
-      bodyString = JSON.stringify(sortedBody);
-    }
-    stringToSign = `${urlPath}${bodyString}${expires}`;
-  }
-  
-  const signature = crypto.createHmac('sha512', privateKey)
-    .update(stringToSign)
+  return crypto
+    .createHmac('sha512', secretKey)
+    .update(message)
     .digest('hex');
-    
-  return signature;
 }
+
+// Пример использования
+const method = 'GET';
+const path = '/api/v1/balance';
+const body = null; // Пустое тело для GET запроса
+const nonce = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 1000); // Уникальное значение
+const secretKey = 'your_secret_key_here';
+
+const signature = generateSignature(method, path, body, nonce, secretKey);
+console.log('Signature:', signature);
 ```
 
-#### PHP
-```php
-function generateSignature($secret, $message) {
-    return hash_hmac('sha512', $message, $secret);
-}
+#### Важные особенности NONCE
+
+**Проблема с NONCE:**
+- Система запоминает использованные NONCE для каждого мерчанта в поле `lastNonce`
+- Повторное использование NONCE приводит к ошибке `invalid NONCE (код 2007)`
+- NONCE должен быть больше `lastNonce` в базе данных
+- Каждый NONCE может быть использован только один раз
+
+**Решение:**
+```javascript
+// Используйте текущее время + случайное число для гарантии уникальности
+const nonce = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 100);
 ```
 
 ### Формирование Сообщения
@@ -64,17 +58,19 @@ function generateSignature($secret, $message) {
 - **GET Запрос**: Сообщение составляется из URL и закодированных параметров запроса.
 - **POST Запрос**: Сообщение включает URL и JSON тело запроса.
 
+**⚠️ ВАЖНО**: Значение `nonce` ВСЕГДА добавляется в конец сообщения для подписи.
+
 #### <span style="color:red">
 *JSON ключи в теле (body) и query параметры запроса должны идти в алфавитном порядке!* </span>
 
 #### Пример формирования сообщения для GET запроса:
 - **URL**: `/api/v1/balance`
-- **Expires**: `1721585422` - время жизни запроса в формате UNIX по UTC
+- **nonce**: `1721585422` - уникальное значение в формате UNIX по UTC
 - **Сообщение для подписи**: `/api/v1/balance1721585422`
 
 #### Пример формирования сообщения для POST запроса:
 - **URL**: `https://api.way2pay.top/api/v1/pay-in`
-- **Expires**: `1721585422`
+- **nonce**: `1721585422`
 - **Тело запроса**: `{"amount":"1000","bankId":1,"callbackURL":"https://test.com/callback","currencyId":1,"externalID":"test123","method":"CARD"}`
 - **Сообщение для подписи**: `/api/v1/pay-in{"amount":"1000","bankId":1,"callbackURL":"https://test.com/callback","currencyId":1,"externalID":"test123","method":"CARD"}1721585422`
 
@@ -84,14 +80,14 @@ function generateSignature($secret, $message) {
 
 - **Content-Type**: `application/json`
 - **Public-Key**: Ваш публичный ключ, предоставленный *Way2Pay*
-- **Expires**: Время истечения жизни запроса (UNIX timestamp)
+- **nonce**: Уникальное значение для предотвращения повторных запросов (UNIX timestamp)
 - **Signature**: Подпись HMAC-SHA512, сгенерированная с использованием вашего приватного ключа
 
 #### Пример заголовков
 
 ```http
 Content-Type: application/json
-Expires: 1717025133
+nonce: 1717025133
 Public-Key: your_public_key_here
 Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490cfc8ff180e7575c5dbbc643ab3842ca05ae8bbb9f08e57c58cab748f8677
 ```
@@ -125,7 +121,7 @@ Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 GET /api/v1/balance HTTP/1.1
 Host: api.way2pay.top
 Content-Type: application/json
-Expires: 1717025133
+nonce: 1717025133
 Public-Key: your_public_key_here
 Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490cfc8ff180e7575c5dbbc643ab3842ca05ae8bbb9f08e57c58cab748f8677
 ```
@@ -138,9 +134,9 @@ Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 POST /api/v1/pay-in HTTP/1.1
 Host: api.way2pay.top
 Content-Type: application/json
-Expires: 1717025134
+nonce: 1717025134
 Public-Key: your_public_key_here
-Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490cfc8ff180e7575c5dbbc643ab3842ca05ae8bbb9f08e57c58cab748f8678
+Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490cfc8ff180e7575c5dbbc643ab3842ca05ae8bbb9f08e57c58cab748f8677
 
 {
   "bankId": 1,
@@ -600,7 +596,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 | 20003 | failed to parse key | 422 |
 | 20004 | signature header value missing or malformed | 400 |
 | 20005 | public-Key header value missing or malformed | 400 |
-| 20006 | timestamp header value missing or outdated | 400 |
+| 20006 | nonce header value missing or outdated | 400 |
 | 20012 | invalid query params | 400 |
 | 20015 | conflict | 409 |
 | 20016 | empty external ID | 400 |
@@ -626,7 +622,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 | Код ошибки | Сообщение | HTTP статус |
 |------------|-----------|-------------|
 | 60003 | empty Public-Key | 401 |
-| 60004 | empty Expires | 401 |
+| 60004 | empty nonce | 401 |
 | 60005 | empty Signature | 401 |
 | 60006 | invalid Signature | 401 |
 | 60007 | request timeout | 408 |
