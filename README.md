@@ -241,23 +241,15 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
       "id": 1,
       "name": "МежБанк",
       "key": "ANY_BANK",
-      "isActive": true,
       "currency": "RUB",
-      "environment": "PRODUCTION",
-      "isTestMode": false,
-      "createdAt": "2025-07-26T12:41:35.442Z",
-      "updatedAt": "2025-07-26T12:41:35.442Z"
+      "environment": "PRODUCTION"
     },
     {
       "id": 2,
       "name": "СБП",
       "key": "SBP",
-      "isActive": true,
       "currency": "RUB",
-      "environment": "PRODUCTION",
-      "isTestMode": false,
-      "createdAt": "2025-07-26T12:41:35.442Z",
-      "updatedAt": "2025-07-26T12:41:35.442Z"
+      "environment": "PRODUCTION"
     }
   ]
 }
@@ -631,6 +623,10 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 | 60010 | external ID already exists | 409 |
 | 60011 | payment doesn't exists | 404 |
 | 60012 | payment is finalized | 409 |
+| 60013 | commission doesnt exists | 400 |
+| 60014 | bank doesnt exists | 400 |
+| 60015 | method doesnt exists | 400 |
+
 
 ## Тестовые окружения
 
@@ -835,7 +831,27 @@ app.listen(3000, () => {
 
 - **Техническая поддержка**: https://t.me/Way2Pay_CTO
 - **Статус системы**: https://api.way2pay.top/monitoring/health
-- **Документация обновлена**: 2025-08-06
+- **Документация обновлена**: 08.08.2025
+
+## Обновления от 08.08.2025
+
+### Добавлены новые коды ошибок
+
+| Код | Сообщение | Статус |
+|-----|-----------|--------|
+| 60013 | commission doesnt exists | 400 |
+| 60014 | bank doesnt exists | 400 |
+| 60015 | method doesnt exists | 400 |
+
+### Удаление ненужных полей с эндпоинта `/api/v1/banks`
+```json
+{
+  "isActive": true,
+  "isTestMode": false,
+  "createdAt": "2025-07-26T12:41:35.442Z",
+  "updatedAt": "2025-07-26T12:41:35.442Z"
+}
+```
 
 ---
 
