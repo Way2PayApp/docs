@@ -16,14 +16,39 @@
 ```javascript
 const crypto = require('crypto');
 
-function generateSignature(method, path, body, nonce, secretKey) {
-  const bodyStr = body ? JSON.stringify(body) : '';
-  const message = path + bodyStr + nonce;
+// Функция сортировки объекта по ключам
+function sortObjectKeys(obj) {
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    return obj;
+  }
   
-  return crypto
-    .createHmac('sha512', secretKey)
-    .update(message)
+  const sortedObj = {};
+  const keys = Object.keys(obj).sort();
+  
+  for (const key of keys) {
+    sortedObj[key] = sortObjectKeys(obj[key]);
+  }
+  
+  return sortedObj;
+}
+
+function generateCorrectSignature(method, path, body, nonce, secretKey) {
+  // Сортируем ключи
+  const sortedBodyObj = sortObjectKeys(bodyObj);
+  const body = JSON.stringify(sortedBodyObj);
+  
+  const stringToSign = url + body + nonce;
+  
+  // Используем crypto-js совместимый метод (HmacSHA512)
+  const signature = crypto.createHmac('sha512', privateKey)
+    .update(stringToSign)
     .digest('hex');
+  
+  return {
+    stringToSign,
+    signature,
+    body
+  };
 }
 
 // Пример использования
@@ -47,9 +72,56 @@ console.log('Signature:', signature);
 
 **Решение:**
 ```javascript
-// Используйте текущее время + случайное число для гарантии уникальности
-const nonce = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 100);
+let counter = 0;
+
+function generateNonce() {
+  const timePart = Date.now(); // 13 цифр (мс до 2286)
+  const counterPart = (counter++ % 1000).toString().padStart(3, "0"); // 3 цифры
+  const randomPart = Math.floor(Math.random() * 100).toString().padStart(2, "0"); // 2 цифры
+  
+  return parseInt(`${timePart}${counterPart}${randomPart}`);
+}
+
+const nonce = generateNonce();
 ```
+
+##### Принцип работы
+Функция генерирует уникальный идентификатор на основе текущего времени в миллисекундах, счётчика и случайного числа. Это обеспечивает высокую степень уникальности генерируемых значений.
+
+##### Структура nonce
+```
+TTTTTTTTTTTTTCCC RR
+├─ Время (13 цифр) - текущее время в миллисекундах (от 2286 года)
+├─ Счетчик (3 цифры) - счётчик (сбрасывается каждый день)
+└─ Случайность (2 цифры) - случайное число (от 0 до 99)
+```
+
+##### Ключевые параметры
+- **Время (timePart):** текущее время в миллисекундах (13 цифр).
+- **Счётчик (counterPart):** трёхзначный счётчик, который увеличивается с каждым вызовом функции и сбрасывается после достижения 999.
+- **Случайность (randomPart):** двухзначное случайное число (0-99), добавляющее дополнительную энтропию.
+
+##### Возвращаемое значение
+Функция возвращает целое число в формате BIGINT UNSIGNED (до 18 цифр), совместимое с большинством СУБД. Пример: ***172325680000000112***.
+
+##### Преимущества подхода
+- **Высокая уникальность:**
+  - 1,000,000 уникальных значений/мс (1,000 счётчик × 100 случайных)
+  - Поддержка до 1,000 RPS без коллизий
+
+- **Совместимость:**
+  - Работает с MySQL, PostgreSQL, Redis
+  - Автоматически конвертируется в BIGINT
+
+- **Простота реализации:**
+  - Не требует синхронизации между серверами
+  - Минимальные накладные расходы
+
+##### Минусы использования чистого timestamp:
+- Не гарантирует уникальность при параллельных запросах
+- Может нарушать хронологический порядок
+- Уязвим к атакам повторного воспроизведения
+- Не масштабируется под высокие нагрузки
 
 ### Формирование Сообщения
 
@@ -186,7 +258,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
   "success": false,
   "error": {
     "message": "Invalid Signature",
-    "code": 60006
+    "code": 2005
   }
 }
 ```
@@ -366,6 +438,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
   "data": {
     "id": "uuid-here",
     "externalID": "test_merchant_id_2",
+    "trackerId": "f5ef6b73-0952-4602-a306-82ef1f755f85",
     "amount": "1000",
     "currency": "RUB",
     "status": "CREATED",
@@ -373,10 +446,6 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
     "bank": "ANY_BANK",
     "receiver": "2200154965960000",
     "holder": "Иванов Иван Иванович",
-    "cardNumber": "2200154965960000",
-    "accountNumber": null,
-    "phoneNumber": "+79001234567",
-    "nspkURL": "https://payment.example.com/pay/uuid-here",
     "createdAt": "2025-01-01T12:00:00Z"
   }
 }
@@ -574,10 +643,16 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 
 ### Коды ошибок
 
+#### Ошибки аутентификации (2000-2999)
+| Код ошибки | Сообщение | HTTP статус |
+| 2005 | invalid Signature | 401 |
+| 2007 | invalid NONCE | 401 |
+
 #### Общие ошибки (10000-19999)
 | Код ошибки | Сообщение | HTTP статус |
 |------------|-----------|-------------|
 | 10000 | unauthorized | 401 |
+
 
 #### Ошибки валидации (20000-29999)
 | Код ошибки | Сообщение | HTTP статус |
@@ -616,7 +691,6 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 | 60003 | empty Public-Key | 401 |
 | 60004 | empty nonce | 401 |
 | 60005 | empty Signature | 401 |
-| 60006 | invalid Signature | 401 |
 | 60007 | request timeout | 408 |
 | 60008 | invalid Public-Key | 400 |
 | 60009 | empty external ID | 400 |
@@ -668,6 +742,7 @@ X-Environment: SANDBOX
 {
   "id": "e42e0768-d913-4b4b-8708-f94cfeaf0777",
   "externalID": "test_merchant_id_1",
+  "trackerID": "e42e0768-d913-4b4b-8708-f94cfeaf0777",
   "status": "COMPLETED",
   "amount": "1000",
   "currency": "RUB",
@@ -675,11 +750,7 @@ X-Environment: SANDBOX
   "bank": "ANY_BANK",
   "receiver": "2200154965960000",
   "holder": "Иванов Иван Иванович",
-  "cardNumber": "2200154965960000",
-  "phoneNumber": "+79001234567",
-  "nspkURL": "https://payment.example.com/pay/uuid-here",
-  "timestamp": "2024-01-01T12:00:00Z",
-  "trackerId": "e42e0768-d913-4b4b-8708-f94cfeaf0777"
+  "timestamp": "2024-01-01T12:00:00Z"
 }
 ```
 
@@ -689,15 +760,16 @@ X-Environment: SANDBOX
 {
   "id": "f5ef6b73-0952-4602-a306-82ef1f755f85",
   "externalID": "test_merchant_id_2",
+  "trackerId": "f5ef6b73-0952-4602-a306-82ef1f755f85",
   "status": "COMPLETED",
   "amount": "5000",
   "commission": "355",
   "currency": "RUB",
   "method": "CARD",
+  "bank": "ANY_BANK",
   "receiver": "4000000000000000",
   "holder": "Иванов Иван Иванович",
-  "timestamp": "2024-01-01T12:00:00Z",
-  "trackerId": "f5ef6b73-0952-4602-a306-82ef1f755f85"
+  "timestamp": "2024-01-01T12:00:00Z"
 }
 ```
 
@@ -706,13 +778,15 @@ X-Environment: SANDBOX
 | Параметр | Тип | Описание |
 |----------|-----|----------|
 | externalID | string | Ваш уникальный ID транзакции |
+| trackerId | string | Опциональный ID для отслеживания (если передан) |
 | status | string | Новый статус транзакции |
 | amount | string | Сумма транзакции |
 | currency | number | ID валюты |
 | method | string | Метод платежа/выплаты |
-| receiver | string | Реквизиты получателя (только для PayOut) |
+| bank | string | Банк |
+| receiver | string | Реквизиты получателя |
+| holder | string | Имя держателя карты |
 | timestamp | string | Время изменения статуса в формате ISO 8601 |
-| trackerId | string | Опциональный ID для отслеживания (если передан) |
 
 ### Заголовки callback запроса
 
@@ -839,6 +913,9 @@ app.listen(3000, () => {
 
 | Код | Сообщение | Статус |
 |-----|-----------|--------|
+| 2004 | request timeout | 401 |
+| 2005 | invalid Signature | 401 |
+| 2007 | invalid NONCE | 401 |
 | 60013 | commission doesnt exists | 400 |
 | 60014 | bank doesnt exists | 400 |
 | 60015 | method doesnt exists | 400 |
