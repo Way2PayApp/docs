@@ -439,14 +439,17 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
     "id": "uuid-here",
     "externalID": "test_merchant_id_2",
     "trackerId": "f5ef6b73-0952-4602-a306-82ef1f755f85",
+    "status": "PROCESSING",
     "amount": "1000",
+    "commission": "1044.20",
     "currency": "RUB",
-    "status": "CREATED",
+    "bank": "Озон Банк (Ozon)",
     "method": "CARD",
-    "bank": "ANY_BANK",
     "receiver": "2200154965960000",
     "holder": "Иванов Иван Иванович",
-    "createdAt": "2025-01-01T12:00:00Z"
+    "description": "Тестовая оплата",
+    "createdAt": "2025-01-01T12:00:00Z",
+    "updatedAt": "2025-01-01T12:00:00Z"
   }
 }
 ```
@@ -462,9 +465,9 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 | Параметр | Тип | Обязательный | Описание | Пример |
 |----------|-----|--------------|----------|----------|
 | externalID | string | Да | Уникальный ID в системе мерчанта | "test_payout_123" |
-| bank | string | Да | Код банка | "ANY_BANK" |
+| bankId | number | Да | ID банка | 1 |
 | method | string | Да | Метод выплаты: CARD, SBP, ACCOUNT | "CARD" |
-| currencyId | string | Да | Код валюты | "RUB" |
+| currencyId | number | Да | ID валюты | 1 |
 | callbackURL | string | Да | URL для получения callback | "https://example.com/callback" |
 | amount | string | Да | Сумма выплаты | "5000" |
 | receiver | string | Да | Реквизиты получателя | "4000000000000000" |
@@ -474,9 +477,9 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 ```json
 {
   "externalID": "test_payout_123",
-  "bank": "ANY_BANK",
+  "bankId": 1,
   "method": "CARD",
-  "currencyId": "RUB",
+  "currencyId": 1,
   "callbackURL": "https://example.com/callbacks/payout",
   "amount": "5000",
   "receiver": "4000000000000000",
@@ -486,9 +489,9 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 
 #### Описание полей:
 - `externalID` (string) - Ваш уникальный ID заявки (1-64 символа, только латинские буквы, цифры, дефис и подчеркивание)
-- `bank` (string) - Наименование банка
+- `bankId` (number) - ID банка
 - `method` (string) - Метод перевода: `CARD`, `SBP`, `ACCOUNT`
-- `currencyId` (string) - Код валюты (3 заглавные буквы)
+- `currencyId` (number) - ID валюты
 - `callbackURL` (string) - URL для получения callback уведомлений
 - `amount` (string) - Сумма выплаты (число с не более чем 2 знаками после запятой)
 - `receiver` (string) - Реквизит получателя (номер карты/телефон/счет)
@@ -501,13 +504,16 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
   "data": {
     "id": "uuid-here",
     "externalID": "test_payout_123",
+    "trackerID": "f5ef6b73-0952-4602-a306-82ef1f755f85",
+    "status": "PROCESSING",
     "amount": "5000",
+    "commission": "355",
     "currency": "RUB",
-    "status": "CREATED",
+    "bank": "OZON",
     "method": "CARD",
     "receiver": "4000000000000000",
     "holder": "Иванов Иван Иванович",
-    "commission": "355",
+    "description": "Тестовая выплата",
     "createdAt": "2025-01-01T12:00:00Z"
   }
 }
@@ -528,28 +534,28 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
   "data": {
     "id": "f5ef6b73-0952-4602-a306-82ef1f755f85",
     "externalID": "test_merchant_id_1",
-    "currency": "RUB",
-    "method": "CARD",
-    "amount": "1000",
+    "trackerID": "f5ef6b73-0952-4602-a306-82ef1f755f85",
     "status": "COMPLETED",
-    "bank": "МежБанк",
+    "amount": "1000",
+    "commission": "1044.20",
+    "currency": "RUB",
+    "bank": "Озон Банк (Ozon)",
+    "method": "CARD",
     "receiver": "2202206212345678",
     "holder": "IVAN IVANOV",
-    "cardNumber": "2202206212345678",
-    "accountNumber": null,
-    "phoneNumber": "+79001234567",
-    "nspkURL": "https://qr.nspk.ru/...",
+    "description": "Тестовая оплата",
     "createdAt": "2024-01-01T12:00:00Z",
-    "createdTime": "2024-01-01T12:00:00Z",
-    "updatedTime": "2024-01-01T12:05:00Z",
-    "commission": "50.0"
+    "updatedAt": "2024-01-01T12:05:00Z"
   }
 }
 ```
 
-#### Получение заявки PayOut по ID
+### 8. Получение заявки PayOut по ID
 
 **GET** `/api/v1/pay-out/{id}`
+
+#### Параметры URL
+- `id` - ID заявки
 
 #### Пример ответа
 ```json
@@ -558,22 +564,23 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
   "data": {
     "id": "f5ef6b73-0952-4602-a306-82ef1f755f85",
     "externalID": "test_power_9",
-    "currency": "RUB",
+    "trackerID": "f5ef6b73-0952-4602-a306-82ef1f755f85",
     "status": "PENDING",
-    "holder": "Иванов Иван Иванович",
-    "receiver": "2100153962960000",
-    "createdTime": "2025-05-26T20:55:13.968821Z",
-    "updatedTime": "2025-05-26T23:55:15.127007+03:00",
     "amount": "12165",
-    "commission": "973.2"
+    "commission": "973.2",
+    "currency": "RUB",
+    "bank": "Озон Банк (Ozon)",
+    "method": "CARD",
+    "receiver": "2100153962960000",
+    "holder": "Иванов Иван Иванович",
+    "description": "Тестовая выплата",
+    "createdAt": "2025-05-26T20:55:13.968821Z",
+    "updatedAt": "2025-05-26T23:55:15.127007+03:00",
   }
 }
 ```
 
-#### Параметры URL
-- `id` - ID заявки
-
-### 8. Получение списка заявок
+### 9. Получение списка заявок
 
 #### Получение списка PayIn заявок
 
@@ -583,7 +590,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 
 **GET** `/api/v1/pay-out/list`
 
-### 9. Обновление статуса заявки
+### 10. Обновление статуса заявки
 
 #### Обновление статуса PayIn
 
@@ -600,9 +607,10 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
   "data": {
     "id": "uuid-here",
     "externalID": "test_merchant_id_2",
+    "trackerID": "f5ef6b73-0952-4602-a306-82ef1f755f85",
+    "status": "COMPLETED",
     "amount": "1000",
     "currency": "RUB",
-    "status": "COMPLETED",
     "method": "CARD",
     "createdAt": "2024-01-01T12:00:00Z",
     "updatedAt": "2024-01-01T12:05:00Z"
@@ -745,11 +753,13 @@ X-Environment: SANDBOX
   "trackerID": "e42e0768-d913-4b4b-8708-f94cfeaf0777",
   "status": "COMPLETED",
   "amount": "1000",
+  "commission": "100",
   "currency": "RUB",
+  "bank": "Озон Банк (OZON)",
   "method": "CARD",
-  "bank": "ANY_BANK",
   "receiver": "2200154965960000",
   "holder": "Иванов Иван Иванович",
+  "description": "Тестовая транзакция",
   "timestamp": "2024-01-01T12:00:00Z"
 }
 ```
@@ -765,10 +775,11 @@ X-Environment: SANDBOX
   "amount": "5000",
   "commission": "355",
   "currency": "RUB",
+  "bank": "Озон Банк (OZON)",
   "method": "CARD",
-  "bank": "ANY_BANK",
   "receiver": "4000000000000000",
   "holder": "Иванов Иван Иванович",
+  "description": "Тестовая транзакция",
   "timestamp": "2024-01-01T12:00:00Z"
 }
 ```
@@ -781,11 +792,13 @@ X-Environment: SANDBOX
 | trackerId | string | Опциональный ID для отслеживания (если передан) |
 | status | string | Новый статус транзакции |
 | amount | string | Сумма транзакции |
-| currency | number | ID валюты |
-| method | string | Метод платежа/выплаты |
+| commission | string | Комиссия |
+| currency | string | Валюта |
 | bank | string | Банк |
+| method | string | Метод платежа/выплаты |
 | receiver | string | Реквизиты получателя |
 | holder | string | Имя держателя карты |
+| description | string | Описание транзакции |
 | timestamp | string | Время изменения статуса в формате ISO 8601 |
 
 ### Заголовки callback запроса
