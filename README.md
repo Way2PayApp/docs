@@ -32,7 +32,7 @@ function sortObjectKeys(obj) {
   return sortedObj;
 }
 
-function generateCorrectSignature(method, path, body, nonce, secretKey) {
+function generateSignature(method, path, body, nonce, secretKey) {
   // Сортируем ключи
   const sortedBodyObj = sortObjectKeys(bodyObj);
   const body = JSON.stringify(sortedBodyObj);
@@ -55,7 +55,7 @@ function generateCorrectSignature(method, path, body, nonce, secretKey) {
 const method = 'GET';
 const path = '/api/v1/balance';
 const body = null; // Пустое тело для GET запроса
-const nonce = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 1000); // Уникальное значение
+const nonce = generateNonce(); // Уникальное значение
 const secretKey = 'your_secret_key_here';
 
 const signature = generateSignature(method, path, body, nonce, secretKey);
