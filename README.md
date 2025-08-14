@@ -600,6 +600,11 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 - `id` - ID заявки в системе Way2Pay
 - `status` - Новый статус заявки
 
+#### Строка для подписи
+Формат: {URL_PATH}{BODY}{EXPIRES}
+
+- Пример: /api/v1/pay-in/{ID}/status/{STATUS}{}{EXPIRES}
+
 #### Пример ответа
 ```json
 {
