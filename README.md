@@ -32,14 +32,18 @@ function sortObjectKeys(obj) {
   return sortedObj;
 }
 
-function generateSignature(method, path, body, nonce, secretKey) {
-  // Сортируем ключи
-  const sortedBodyObj = sortObjectKeys(bodyObj);
-  const body = JSON.stringify(sortedBodyObj);
+function generateSignature(path, body, nonce, privateKey) {
+  // Для POST запросов сортируем ключи в body
+  let bodyString = '';
+  if (body && typeof body === 'object') {
+    const sortedBodyObj = sortObjectKeys(body);
+    bodyString = JSON.stringify(sortedBodyObj);
+  }
   
-  const stringToSign = url + body + nonce;
+  // Формируем строку для подписи: path + body + nonce
+  const stringToSign = path + bodyString + nonce;
   
-  // Используем crypto-js совместимый метод (HmacSHA512)
+  // Генерируем подпись HMAC-SHA512
   const signature = crypto.createHmac('sha512', privateKey)
     .update(stringToSign)
     .digest('hex');
@@ -47,19 +51,33 @@ function generateSignature(method, path, body, nonce, secretKey) {
   return {
     stringToSign,
     signature,
-    body
+    body: bodyString
   };
 }
 
-// Пример использования
-const method = 'GET';
+// Пример использования для GET запроса
 const path = '/api/v1/balance';
 const body = null; // Пустое тело для GET запроса
 const nonce = generateNonce(); // Уникальное значение
-const secretKey = 'your_secret_key_here';
+const privateKey = 'your_private_key_here';
 
-const signature = generateSignature(method, path, body, nonce, secretKey);
-console.log('Signature:', signature);
+const result = generateSignature(path, body, nonce, privateKey);
+console.log('String to sign:', result.stringToSign);
+console.log('Signature:', result.signature);
+
+// Пример для POST запроса
+const postPath = '/api/v1/pay-in';
+const postBody = {
+  amount: "1000",
+  bankId: 1,
+  callbackURL: "https://test.com/callback",
+  currencyId: 1,
+  externalID: "test123",
+  method: "CARD"
+};
+const postResult = generateSignature(postPath, postBody, nonce, privateKey);
+console.log('POST String to sign:', postResult.stringToSign);
+console.log('POST Signature:', postResult.signature);
 ```
 
 #### Важные особенности NONCE
@@ -127,16 +145,19 @@ TTTTTTTTTTTTTCCC RR
 - Высокий риск повторного использования NONCE
 
 #### Как работает валидация
-1. Система сравнивает expires с lastNonce в базе данных
+1. Система сравнивает новый NONCE с lastNonce в базе данных
 2. Новый NONCE должен быть строго больше предыдущего
 3. При успешной валидации lastNonce обновляется в базе
 
 ### Формирование Сообщения
 
-Сообщение (message), используемое для генерации подписи, формируется по-разному в зависимости от метода HTTP запроса:
+Сообщение (stringToSign), используемое для генерации подписи, формируется одинаково для всех типов запросов:
 
-- **GET Запрос**: Сообщение составляется из URL и закодированных параметров запроса.
-- **POST Запрос**: Сообщение включает URL и JSON тело запроса.
+**Формула**: `path + body + nonce`
+
+- **path** - путь к эндпоинту (например: `/api/v1/balance`)
+- **body** - JSON строка тела запроса (пустая строка для GET запросов)
+- **nonce** - уникальное числовое значение
 
 **⚠️ ВАЖНО**: Значение `nonce` ВСЕГДА добавляется в конец сообщения для подписи.
 
@@ -145,11 +166,11 @@ TTTTTTTTTTTTTCCC RR
 
 #### Пример формирования сообщения для GET запроса:
 - **URL**: `/api/v1/balance`
-- **nonce**: `1721585422` - уникальное значение в формате UNIX по UTC
+- **nonce**: `1721585422` - уникальное числовое значение
 - **Сообщение для подписи**: `/api/v1/balance1721585422`
 
 #### Пример формирования сообщения для POST запроса:
-- **URL**: `https://api.way2pay.top/api/v1/pay-in`
+- **path**: `/api/v1/pay-in`
 - **nonce**: `1721585422`
 - **Тело запроса**: `{"amount":"1000","bankId":1,"callbackURL":"https://test.com/callback","currencyId":1,"externalID":"test123","method":"CARD"}`
 - **Сообщение для подписи**: `/api/v1/pay-in{"amount":"1000","bankId":1,"callbackURL":"https://test.com/callback","currencyId":1,"externalID":"test123","method":"CARD"}1721585422`
@@ -160,7 +181,7 @@ TTTTTTTTTTTTTCCC RR
 
 - **Content-Type**: `application/json`
 - **Public-Key**: Ваш публичный ключ, предоставленный *Way2Pay*
-- **nonce**: Уникальное значение для предотвращения повторных запросов (UNIX timestamp)
+- **nonce**: Уникальное числовое значение для предотвращения повторных запросов (должно быть больше предыдущего)
 - **Signature**: Подпись HMAC-SHA512, сгенерированная с использованием вашего приватного ключа
 
 #### Пример заголовков
