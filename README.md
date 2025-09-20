@@ -206,11 +206,9 @@ Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 | POST | `/api/v1/pay-in` | Создание заявки на прием платежа |
 | GET | `/api/v1/pay-in/list` | Получение списка заявок PayIn |
 | GET | `/api/v1/pay-in/{id}` | Получение заявки PayIn по ID |
-| PUT | `/api/v1/pay-in/{id}/status/{status}` | Обновление статуса заявки PayIn |
 | POST | `/api/v1/pay-out` | Создание выплаты |
 | GET | `/api/v1/pay-out/list` | Получение списка заявок PayOut |
 | GET | `/api/v1/pay-out/{id}` | Получение заявки PayOut по ID |
-| PUT | `/api/v1/pay-out/{id}/status/{status}` | Обновление статуса заявки PayOut |
 
 ## Выполнение Запросов
 
@@ -618,39 +616,6 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 #### Получение списка PayOut заявок
 
 **GET** `/api/v1/pay-out/list`
-
-### 10. Обновление статуса заявки
-
-#### Обновление статуса PayIn
-
-**PUT** `/api/v1/pay-in/{id}/status/{status}`
-
-#### Параметры URL для обновления статуса
-- `id` - ID заявки в системе Way2Pay
-- `status` - Новый статус заявки
-
-#### Строка для подписи
-Формат: {URL_PATH}{BODY}{EXPIRES}
-
-- Пример: /api/v1/pay-in/{ID}/status/{STATUS}{}{EXPIRES}
-
-#### Пример ответа
-```json
-{
-  "success": true,
-  "data": {
-    "id": "uuid-here",
-    "externalID": "test_merchant_id_2",
-    "trackerID": "f5ef6b73-0952-4602-a306-82ef1f755f85",
-    "status": "COMPLETED",
-    "amount": "1000",
-    "currency": "RUB",
-    "method": "CARD",
-    "createdAt": "2024-01-01T12:00:00Z",
-    "updatedAt": "2024-01-01T12:05:00Z"
-  }
-}
-```
 
 ## Статусы транзакций
 
