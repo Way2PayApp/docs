@@ -822,7 +822,7 @@ Signature: 3336894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 ```
 
 ### 8. Отмена заявки PayIn по ID
-**POST** `/api/v1/pay-in/{id}/cancel`
+**PATCH** `/api/v1/pay-in/{id}/cancel`
 
 #### Параметры URL
 - `id` - ID заявки в системе Way2Pay
