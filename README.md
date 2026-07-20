@@ -482,7 +482,7 @@ Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 Пример GET запроса для получения баланса:
 ```http
 GET /api/v1/balance HTTP/1.1
-Host: api.way2pay.top
+Host: api.way2pay.tech
 Content-Type: application/json
 nonce: 1717025133
 Public-Key: your_public_key_here
@@ -493,7 +493,7 @@ Signature: 2816894fc8ebe05d47e96eca553ee3ca59863ae8d41a25a42d92b71df5e0e95b4490c
 Пример POST запроса для создания PayIn:
 ```http
 POST /api/v1/pay-in HTTP/1.1
-Host: api.way2pay.top
+Host: api.way2pay.tech
 Content-Type: application/json
 nonce: 1717025134
 Public-Key: your_public_key_here
@@ -1283,7 +1283,7 @@ if __name__ == '__main__':
 ## Поддержка
 Для получения технической поддержки и дополнительной информации:
 - **Техническая поддержка**: https://t.me/Way2Pay_CTO
-- **Статус системы**: https://api.way2pay.top/monitoring/health
+- **Статус системы**: https://api.way2pay.tech/monitoring/health
 
 
 ## Обновления от 08.08.2025
